@@ -1,0 +1,116 @@
+from bs4 import BeautifulSoup
+import requests 
+import pandas as pd
+import numpy as np
+from time import sleep
+from time import time
+from random import randint
+
+headers = {"Accept-Language": "ch, en;q=0.5"}
+url='https://book.douban.com/tag/%E5%B0%8F%E8%AF%B4'
+headers ={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36 OPR/66.0.3515.115'}
+page=requests.get(url,headers=headers)
+page
+
+headers = {"Accept-Language": "ch, en;q=0.5"}
+
+title_list = []
+pub=[]
+rating_nums=[]
+short_descs = []
+start_nums = []
+
+for i in range(0, 2):
+    start_nums.append(str(i*20))#抓取的页面以0为开头，20个一页
+    
+for start_num in start_nums:
+    url='https://book.douban.com/tag/%E5%B0%8F%E8%AF%B4?start='+start_num+'&type=T'
+    headers ={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36 OPR/66.0.3515.115'}
+    print(url)
+    page = requests.get(url, headers = headers)
+    
+    sleep(randint(3,5))
+    
+    soup=BeautifulSoup(page.content, 'html.parser')
+    content = soup.find(id="content") 
+    info = soup.find_all('div',class_="info")
+    
+
+    for infor in info:
+        title=infor.select('h2 a')[0]['title']#抓取书的标题
+        title_list.append(title)
+        
+        name=infor.find('div',class_ = 'pub').get_text()#抓取出版信息
+        pub.append(name.strip())
+        
+        rn=float(infor.find('span',class_='rating_nums').get_text())#抓取评分
+        rating_nums.append(rn)
+        
+        st=infor.select("p")[0].get_text()#抓取简介
+        short_descs.append(st.replace('\n', ''))
+
+
+book_list = pd.DataFrame({
+    "title": title_list, 
+    "rating": rating_nums,
+    "publisher": pub,
+    "desc":short_descs
+})
+print(book_list.info())
+book_list
+
+#抓取详细作者简介并储存
+headers = {"Accept-Language": "ch, en;q=0.5"}
+
+
+intro=[]
+start_nums = []
+for i in range(0, 2):
+    start_nums.append(str(i*20))#抓取的页面以0为开头，20个一页
+    
+
+for start_num in start_nums:
+    url='https://book.douban.com/tag/%E5%B0%8F%E8%AF%B4?start='+start_num+'&type=T'
+    headers ={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36 OPR/66.0.3515.115'}
+    response = requests.get(url, headers = headers)
+    print(response.status_code)
+
+        
+    sleep(randint(2,4))
+    
+    soup=BeautifulSoup(response.content, 'html.parser')
+    content = soup.find(id="subject_list") 
+    info = content.find_all(class_="subject-item")
+
+  
+    for infor in info:
+        sub_url = infor.select('h2 a')[0]['href']
+        book_html = requests.get(sub_url, headers = headers)
+
+        sleep(randint(1,3))
+        
+        sub_soup=BeautifulSoup(book_html.content, 'html.parser')
+        info_=sub_soup.find(class_='related_info')
+        intro1=info_.find_all(class_='indent')[1].find(class_='intro')
+        i=''
+        if intro1==None:
+            i='no value'+' '
+        else:
+            intro2=intro1.find_all('p')
+            for intros in intro2:
+                i=i+intros.get_text()+' ' 
+        print(i[0:len(i)-1])
+        intro.append(i[0:len(i)-1])
+        
+
+intro_df = pd.DataFrame({'intro': intro})
+print(intro_df.info())
+intro_df
+
+result = pd.concat([book_list, intro_df], axis=1)
+result
+
+book9= result[result['rating'] > 9.0]#筛选评分高于9.0的书籍
+book9
+
+result.to_csv('book_list.csv')
