@@ -1,0 +1,70 @@
+from bs4 import BeautifulSoup
+import requests 
+import pandas as pd
+import numpy as np
+from time import sleep
+from time import time
+from random import randint
+
+headers = {"Accept-Language": "ch, en;q=0.5"}
+url='https://book.douban.com/tag/%E5%B0%8F%E8%AF%B4' ##?start='+ start_nums + '&type=T'
+headers ={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36 OPR/66.0.3515.115'}
+page=requests.get(url,headers=headers)
+page
+
+soup=BeautifulSoup(page.content, 'html.parser')
+
+soup.find('title').get_text().strip()
+
+metas = soup.find_all('meta','name="keywords"')
+print(metas)
+
+metas_desc = soup.find_all('meta','name="description"')
+print(metas_desc)
+
+print(soup.get_text())
+
+content = soup.find(id="content") 
+info = content.find_all(class_="info")
+info
+
+for item in info:
+     print(item.prettify(), '\n')
+     
+a= first.find("a")
+pub = first.find(class_="pub").get_text()
+rating_nums = first.find(class_="rating_nums").get_text()
+short_desc=first.find("p").get_text()
+print(a['title'])
+print(pub)
+print(rating_nums)
+print(short_desc)
+
+title_list = [] 
+for title in content.select("h2 a"): 
+    title_list.append(title['title'])
+print(title_list)
+
+pub= []
+rating_nums=[]
+short_descs = []
+for name in content.select(".info .pub"):
+    pub.append(name.get_text().strip())
+for rn in content.select('.info .rating_nums'):
+    rating_nums.append(rn.get_text())
+for st in content.select(".info p"):
+    short_descs.append(st.get_text().replace('\n', ''))
+print(pub)
+print(rating_nums)
+print(short_descs)
+
+book = pd.DataFrame({
+    "title": title_list, 
+    "rating": rating_nums,
+    "publisher": pub,
+    "desc":short_descs
+})
+print(book.info())
+book
+
+book.to_csv('book.csv')
